@@ -8,7 +8,7 @@ async function readRawBody(req: Request) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-02-24.acacia",
+  apiVersion: "2026-02-25.clover",
 });
 
 function mustEnv(name: string) {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       const supabaseUrl = mustEnv("SUPABASE_URL");
       const serviceRole = mustEnv("SUPABASE_SERVICE_ROLE_KEY");
 
-      // 1) Activate course
+      // Activate course
       const courseRes = await fetch(
         `${supabaseUrl}/rest/v1/courses?slug=eq.${encodeURIComponent(courseSlug)}`,
         {
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
         return new Response(`Supabase course update failed: ${txt}`, { status: 500 });
       }
 
-      // 2) Mark submission paid (if we have it)
+      // Mark submission paid
       if (submissionId) {
         const subRes = await fetch(
           `${supabaseUrl}/rest/v1/course_submissions?id=eq.${encodeURIComponent(submissionId)}`,
@@ -91,7 +91,6 @@ export async function POST(req: Request) {
           }
         );
 
-        // do not fail webhook if this patch fails; just log-like response
         if (!subRes.ok) {
           const txt = await subRes.text();
           return new Response(`Supabase submission update failed: ${txt}`, { status: 500 });
