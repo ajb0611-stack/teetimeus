@@ -7,75 +7,36 @@ import { supabaseBrowser } from "@/lib/supabaseBrowser";
 type Submission = {
   id: string;
   created_at: string;
-  status: "pending" | "approved" | "rejected";
-  course_name: string;
-  address: string | null;
-  city: string;
-  state: string;
-  phone: string | null;
-  website_url: string | null;
-  tee_time_url: string;
-  image_url: string | null;
-  notes: string | null;
+  name: string;
+  city: string | null;
+  state: string | null;
+  contact_email: string | null;
+  approval_status: string | null;
+  payment_status: string | null;
+  stripe_checkout_url: string | null;
 };
 
-function slugify(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-export default function AdminSubmissionsPage() {
+export default function AdminSubmissions() {
   const supabase = useMemo(() => supabaseBrowser(), []);
+  const [items, setItems] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<Submission[]>([]);
-  const [msg, setMsg] = useState<string>("");
-
-  async function requireAdmin() {
-    const { data: userRes } = await supabase.auth.getUser();
-    const user = userRes.user;
-
-    if (!user) {
-      window.location.href = "/admin/login";
-      return false;
-    }
-
-    const { data: admins, error } = await supabase
-      .from("admins")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .limit(1);
-
-    if (error || !admins || admins.length === 0) {
-      await supabase.auth.signOut();
-      window.location.href = "/admin/login";
-      return false;
-    }
-
-    return true;
-  }
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function load() {
-    setMsg("");
     setLoading(true);
-
-    const ok = await requireAdmin();
-    if (!ok) return;
+    setError(null);
 
     const { data, error } = await supabase
       .from("course_submissions")
-      .select(
-        "id,created_at,status,course_name,address,city,state,phone,website_url,tee_time_url,image_url,notes"
-      )
+      .select("id,created_at,name,city,state,contact_email,approval_status,payment_status,stripe_checkout_url")
       .order("created_at", { ascending: false });
 
     if (error) {
-      setRows([]);
-      setMsg(`Load failed: ${error.message}`);
+      setError(error.message);
+      setItems([]);
     } else {
-      setRows((data as Submission[]) || []);
+      setItems((data as Submission[]) || []);
     }
 
     setLoading(false);
@@ -86,171 +47,178 @@ export default function AdminSubmissionsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function approve(sub: Submission) {
-    setMsg("");
+  async function approveAndEmail(submissionId: string) {
+    setBusyId(submissionId);
+    setError(null);
 
-    const slug = slugify(sub.course_name);
+    try {
+      const res = await fetch("/api/admin/approve-submission", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ submissionId }),
+      });
 
-    // 1) Upsert into courses (requires slug + is_public in your schema)
-    const { error: upsertError } = await supabase.from("courses").upsert(
-      [
-        {
-          name: sub.course_name,
-          slug,
-          address: sub.address,
-          city: sub.city,
-          state: sub.state,
-          phone: sub.phone,
-          website_url: sub.website_url,
-          tee_time_url: sub.tee_time_url,
-          image_url: sub.image_url,
-          is_public: true,
-        },
-      ],
-      { onConflict: "slug" }
-    );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Approve failed");
 
-    if (upsertError) {
-      setMsg(`Approve failed (courses): ${upsertError.message}`);
-      return;
+      // reload so you see updated approval/payment statuses + link
+      await load();
+    } catch (e: any) {
+      setError(e?.message ?? "Approve failed");
+    } finally {
+      setBusyId(null);
     }
-
-    // 2) Mark submission approved
-    const { error: updateError } = await supabase
-      .from("course_submissions")
-      .update({ status: "approved" })
-      .eq("id", sub.id);
-
-    if (updateError) {
-      setMsg(`Approve failed (submission status): ${updateError.message}`);
-      return;
-    }
-
-    setMsg(`Approved: ${sub.course_name}`);
-    await load();
   }
 
-  async function reject(sub: Submission) {
-    setMsg("");
+  async function reject(submissionId: string) {
+    setBusyId(submissionId);
+    setError(null);
 
-    const { error } = await supabase
-      .from("course_submissions")
-      .update({ status: "rejected" })
-      .eq("id", sub.id);
+    try {
+      const { error } = await supabase.from("course_submissions").delete().eq("id", submissionId);
+      if (error) throw error;
 
-    if (error) {
-      setMsg(`Reject failed: ${error.message}`);
-      return;
+      setItems((prev) => prev.filter((x) => x.id !== submissionId));
+    } catch (e: any) {
+      setError(e?.message ?? "Reject failed");
+    } finally {
+      setBusyId(null);
     }
-
-    setMsg(`Rejected: ${sub.course_name}`);
-    await load();
   }
-
-  const pending = rows.filter((r) => r.status === "pending");
-  const approved = rows.filter((r) => r.status === "approved");
-  const rejected = rows.filter((r) => r.status === "rejected");
 
   return (
-    <div className="container">
-      <div className="shell">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 28, fontWeight: 950, letterSpacing: "-0.02em" }}>
-              Course Submissions
-            </div>
-            <div style={{ marginTop: 6, color: "var(--muted)", fontSize: 14 }}>
-              Approve to publish to /courses. Reject to archive.
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <Link className="btn" href="/admin">
-              Dashboard
-            </Link>
-            <Link className="btn" href="/courses">
-              Public Site
-            </Link>
-            <button className="btn" onClick={load}>
-              Refresh
-            </button>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 16px 60px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 26, fontWeight: 950 }}>Admin • Submissions</div>
+          <div style={{ marginTop: 6, opacity: 0.8, fontSize: 14 }}>
+            Approve → automatically emails a Stripe payment link. Course goes live after payment.
           </div>
         </div>
 
-        <div style={{ marginTop: 12, color: "var(--muted)", fontSize: 13 }}>
-          Pending: <b style={{ color: "var(--text)" }}>{pending.length}</b> • Approved:{" "}
-          <b style={{ color: "var(--text)" }}>{approved.length}</b> • Rejected:{" "}
-          <b style={{ color: "var(--text)" }}>{rejected.length}</b>
+        <Link
+          href="/admin"
+          style={{
+            textDecoration: "none",
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.06)",
+            color: "rgba(255,255,255,0.92)",
+            fontWeight: 800,
+            fontSize: 13,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Back to Admin
+        </Link>
+      </div>
+
+      {error ? (
+        <div
+          style={{
+            marginTop: 14,
+            padding: 12,
+            borderRadius: 14,
+            border: "1px solid rgba(239,68,68,0.35)",
+            background: "rgba(239,68,68,0.12)",
+            color: "rgba(255,255,255,0.92)",
+            fontSize: 13,
+          }}
+        >
+          {error}
         </div>
+      ) : null}
 
-        {msg && (
-          <div className="card" style={{ marginTop: 12, fontSize: 13 }}>
-            {msg}
-          </div>
-        )}
+      <div style={{ marginTop: 16 }}>
+        {loading ? (
+          <div style={{ padding: 12, opacity: 0.8 }}>Loading…</div>
+        ) : items.length === 0 ? (
+          <div style={{ padding: 12, opacity: 0.8 }}>No submissions right now.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {items.map((s) => {
+              const busy = busyId === s.id;
+              const status = `${s.approval_status ?? "pending"} / ${s.payment_status ?? "unpaid"}`;
 
-        <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
-          {loading ? (
-            <div style={{ color: "var(--muted)" }}>Loading…</div>
-          ) : rows.length === 0 ? (
-            <div style={{ color: "var(--muted)" }}>No submissions yet.</div>
-          ) : (
-            rows.map((s) => (
-              <div key={s.id} className="card" style={{ display: "grid", gap: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ fontWeight: 950 }}>{s.course_name}</div>
-                  <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                    {new Date(s.created_at).toLocaleString()} •{" "}
-                    <b style={{ color: "var(--text)" }}>{s.status}</b>
-                  </div>
-                </div>
+              return (
+                <div
+                  key={s.id}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: 18,
+                    padding: 16,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                    <div style={{ minWidth: 260 }}>
+                      <div style={{ fontSize: 18, fontWeight: 950 }}>{s.name}</div>
+                      <div style={{ marginTop: 6, fontSize: 13, opacity: 0.82 }}>
+                        {[s.city, s.state].filter(Boolean).join(", ")}
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+                        {new Date(s.created_at).toLocaleString()} • <b>{status}</b>
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
+                        Email: {s.contact_email ?? "—"}
+                      </div>
 
-                <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                  {[
-                    s.address,
-                    `${s.city}, ${s.state}`,
-                    s.phone ? `Phone: ${s.phone}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" • ")}
-                </div>
+                      {s.stripe_checkout_url ? (
+                        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.85, wordBreak: "break-all" }}>
+                          Payment link:{" "}
+                          <a href={s.stripe_checkout_url} target="_blank" rel="noreferrer" style={{ color: "rgba(34,197,94,0.95)" }}>
+                            open
+                          </a>
+                        </div>
+                      ) : null}
+                    </div>
 
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {s.website_url ? (
-                    <a className="btn" href={s.website_url} target="_blank" rel="noreferrer">
-                      Website
-                    </a>
-                  ) : null}
-                  <a className="btn" href={s.tee_time_url} target="_blank" rel="noreferrer">
-                    Booking URL
-                  </a>
-                  {s.image_url ? (
-                    <a className="btn" href={s.image_url} target="_blank" rel="noreferrer">
-                      Image
-                    </a>
-                  ) : null}
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                      <button
+                        disabled={busy}
+                        onClick={() => approveAndEmail(s.id)}
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(34,197,94,0.45)",
+                          background: "linear-gradient(180deg, rgba(34,197,94,1), rgba(22,163,74,1))",
+                          color: "#0b1220",
+                          fontWeight: 950,
+                          cursor: busy ? "not-allowed" : "pointer",
+                          opacity: busy ? 0.7 : 1,
+                        }}
+                      >
+                        Approve + Email Payment Link
+                      </button>
 
-                  <div style={{ flex: 1 }} />
-
-                  {s.status === "pending" ? (
-                    <>
-                      <button className="btn" onClick={() => reject(s)}>
+                      <button
+                        disabled={busy}
+                        onClick={() => reject(s.id)}
+                        style={{
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          border: "1px solid rgba(239,68,68,0.35)",
+                          background: "rgba(239,68,68,0.14)",
+                          color: "rgba(255,255,255,0.92)",
+                          fontWeight: 900,
+                          cursor: busy ? "not-allowed" : "pointer",
+                          opacity: busy ? 0.7 : 1,
+                        }}
+                      >
                         Reject
                       </button>
-                      <button className="btnPrimary" onClick={() => approve(s)}>
-                        Approve & Publish
-                      </button>
-                    </>
-                  ) : (
-                    <span style={{ fontSize: 12, color: "var(--muted)" }}>
-                      No actions (already {s.status})
-                    </span>
-                  )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 18, fontSize: 12, opacity: 0.75 }}>
+        After payment, the webhook activates the course automatically.
       </div>
     </div>
   );
