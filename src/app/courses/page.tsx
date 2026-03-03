@@ -285,6 +285,7 @@ export default function CoursesPage() {
         .from("courses")
         .select("id,name,address,city,state,phone,website_url,tee_time_url,image_url")
         .eq("is_public", true)
+        .eq("is_active", true)
         .order("name", { ascending: true });
 
       if (!alive) return;
