@@ -1,162 +1,128 @@
+// src/app/api/admin/approve-submission/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { Resend } from "resend";
+import { supabaseService } from "@/lib/supabaseClients";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-02-25.clover",
-});
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-function mustEnv(name: string) {
+function requireEnv(name: string) {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing env var: ${name}`);
+  if (!v) throw new Error(`Missing required env var: ${name}`);
   return v;
-}
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
 }
 
 export async function POST(req: Request) {
   try {
     const { submissionId } = (await req.json()) as { submissionId?: string };
-    if (!submissionId) return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
 
-    const supabaseUrl = mustEnv("SUPABASE_URL");
-    const serviceRole = mustEnv("SUPABASE_SERVICE_ROLE_KEY");
-
-    // 1) Fetch submission
-    const getRes = await fetch(
-      `${supabaseUrl}/rest/v1/course_submissions?id=eq.${encodeURIComponent(submissionId)}&select=*`,
-      {
-        headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` },
-      }
-    );
-    if (!getRes.ok) {
-      const t = await getRes.text();
-      throw new Error(`Failed to fetch submission: ${t}`);
+    if (!submissionId) {
+      return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
     }
 
-    const rows = (await getRes.json()) as any[];
-    const s = rows?.[0];
-    if (!s) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+    // Read env vars ONLY when the request runs (prevents build-time crashes)
+    const STRIPE_SECRET_KEY = requireEnv("STRIPE_SECRET_KEY");
+    const STRIPE_PRICE_ID = requireEnv("STRIPE_PRICE_ID");
+    const RESEND_API_KEY = requireEnv("RESEND_API_KEY");
+    const EMAIL_FROM = requireEnv("EMAIL_FROM");
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://teetimeus.com";
 
-    if (!s.contact_email) return NextResponse.json({ error: "Submission missing contact_email" }, { status: 400 });
-    if (!s.tee_time_url) return NextResponse.json({ error: "Submission missing tee_time_url" }, { status: 400 });
+    const stripe = new Stripe(STRIPE_SECRET_KEY);
+    const resend = new Resend(RESEND_API_KEY);
 
-    const courseSlug = s.slug || slugify(s.name);
+    // 1) Load submission (must include email)
+    const { data: sub, error: subErr } = await supabaseService()
+      .from("course_submissions")
+      .select("id, course_name, contact_email")
+      .eq("id", submissionId)
+      .single();
 
-    // 2) Create/Upsert course as public but inactive until paid
-    const courseBody = {
-      name: s.name,
-      slug: courseSlug,
-      address: s.address ?? null,
-      city: s.city ?? null,
-      state: s.state ?? null,
-      phone: s.phone ?? null,
-      website_url: s.website_url ?? null,
-      tee_time_url: s.tee_time_url ?? null,
-      image_url: s.image_url ?? null,
-      is_public: true,
-      is_active: false,
-      subscription_status: "inactive",
-    };
-
-    const upsertRes = await fetch(`${supabaseUrl}/rest/v1/courses?on_conflict=slug`, {
-      method: "POST",
-      headers: {
-        apikey: serviceRole,
-        Authorization: `Bearer ${serviceRole}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal",
-      },
-      body: JSON.stringify([courseBody]),
-    });
-
-    if (!upsertRes.ok) {
-      const t = await upsertRes.text();
-      throw new Error(`Course upsert failed: ${t}`);
+    if (subErr || !sub) {
+      return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     }
 
-    // 3) Create Stripe checkout session
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const priceId = mustEnv("STRIPE_PRICE_ID");
+    if (!sub.contact_email) {
+      return NextResponse.json(
+        { error: "Submission missing contact_email (required to send payment link)" },
+        { status: 400 }
+      );
+    }
 
+    // 2) Mark submission "approved_pending_payment"
+    const { error: upErr } = await supabaseService()
+      .from("course_submissions")
+      .update({ status: "approved_pending_payment" })
+      .eq("id", submissionId);
+
+    if (upErr) {
+      return NextResponse.json({ error: "Failed to update submission status" }, { status: 500 });
+    }
+
+    // 3) Create Stripe Checkout Session (subscription)
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${siteUrl}/billing/cancel`,
-      metadata: { courseSlug, submissionId },
-      subscription_data: { metadata: { courseSlug, submissionId } },
-      allow_promotion_codes: true,
-    });
-
-    if (!session.url) throw new Error("Stripe session missing url");
-
-    // 4) Mark submission approved + store checkout URL + slug
-    const patchRes = await fetch(`${supabaseUrl}/rest/v1/course_submissions?id=eq.${encodeURIComponent(submissionId)}`, {
-      method: "PATCH",
-      headers: {
-        apikey: serviceRole,
-        Authorization: `Bearer ${serviceRole}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
+      customer_email: sub.contact_email,
+      line_items: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+      success_url: `${SITE_URL}/submit?paid=1`,
+      cancel_url: `${SITE_URL}/submit?paid=0`,
+      metadata: {
+        submission_id: submissionId,
       },
-      body: JSON.stringify({
-        approval_status: "approved",
-        payment_status: "unpaid",
-        stripe_checkout_url: session.url,
-        approved_at: new Date().toISOString(),
-        slug: courseSlug,
-      }),
     });
 
-    if (!patchRes.ok) {
-      const t = await patchRes.text();
-      throw new Error(`Submission patch failed: ${t}`);
+    if (!session.url) {
+      return NextResponse.json({ error: "Stripe session missing url" }, { status: 500 });
     }
 
-    // 5) Email payment link
-    const from = mustEnv("EMAIL_FROM");
+    // 4) Email the payment link
     await resend.emails.send({
-      from,
-      to: s.contact_email,
-      subject: "Your TeeTimeUS course was approved — complete payment to go live",
+      from: EMAIL_FROM,
+      to: sub.contact_email,
+      subject: "Your TeeTimeUs listing was approved — complete payment to go live",
       html: `
-        <div style="font-family:system-ui,Segoe UI,Arial,sans-serif;line-height:1.5">
-          <h2 style="margin:0 0 10px 0">Your course is approved</h2>
-          <p style="margin:0 0 14px 0">
-            Complete your subscription ($14.99/month) to publish <b>${escapeHtml(s.name)}</b> on TeeTimeUS.
+        <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+          <h2 style="margin: 0 0 12px;">Approved ✅</h2>
+          <p style="margin: 0 0 12px;">
+            Your course submission <b>${escapeHtml(sub.course_name || "your course")}</b> was approved.
+            To publish it on TeeTimeUs, please complete your subscription payment:
           </p>
-          <p style="margin:0 0 18px 0">
-            <a href="${session.url}" style="display:inline-block;padding:12px 16px;border-radius:12px;background:#22c55e;color:#0b1220;text-decoration:none;font-weight:800">
-              Activate & Pay
+          <p style="margin: 16px 0;">
+            <a href="${session.url}" style="display:inline-block;padding:12px 16px;border-radius:10px;background:#22c55e;color:#0b1220;text-decoration:none;font-weight:700;">
+              Complete Payment
             </a>
+          </p>
+          <p style="margin: 0;color:#6b7280;font-size: 12px;">
+            If you have questions, just reply to this email.
           </p>
         </div>
       `,
     });
 
-    return NextResponse.json({ ok: true, checkoutUrl: session.url, courseSlug });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "Approve failed" }, { status: 500 });
+    return NextResponse.json({ ok: true, checkoutUrl: session.url });
+  } catch (e: any) {
+    return NextResponse.json(
+      { error: e?.message || "Unknown error" },
+      { status: 500 }
+    );
   }
 }
 
-function escapeHtml(s: string) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function escapeHtml(str: string) {
+  return str.replace(/[&<>"']/g, (m) => {
+    switch (m) {
+      case "&":
+        return "&amp;";
+      case "<":
+        return "&lt;";
+      case ">":
+        return "&gt;";
+      case '"':
+        return "&quot;";
+      case "'":
+        return "&#039;";
+      default:
+        return m;
+    }
+  });
 }

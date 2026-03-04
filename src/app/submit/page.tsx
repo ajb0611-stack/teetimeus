@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 const ui = {
@@ -18,7 +19,14 @@ const ui = {
 
 function AdminIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      style={{ display: "block" }}
+    >
       <path
         d="M12 12a4.25 4.25 0 1 0-4.25-4.25A4.25 4.25 0 0 0 12 12Z"
         stroke="currentColor"
@@ -49,6 +57,7 @@ function isValidUrl(url: string) {
 
 export default function SubmitCoursePage() {
   const supabase = useMemo(() => supabaseBrowser(), []);
+  const router = useRouter();
 
   const [courseName, setCourseName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -62,11 +71,9 @@ export default function SubmitCoursePage() {
   const [imageUrl, setImageUrl] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
   async function onSubmit() {
-    setMsg(null);
     setErr(null);
 
     const name = courseName.trim();
@@ -96,8 +103,6 @@ export default function SubmitCoursePage() {
     if (!tee) return setErr("Tee time booking URL is required.");
     if (!isValidUrl(tee)) return setErr("Tee time booking URL must be a valid https:// or http:// link.");
 
-    // If you truly want image URL required, keep these 2 lines.
-    // If you want it optional, delete these 2 lines.
     if (!img) return setErr("Image URL is required.");
     if (!isValidUrl(img)) return setErr("Image URL must be a valid https:// or http:// link.");
 
@@ -130,16 +135,8 @@ export default function SubmitCoursePage() {
       return;
     }
 
-    setMsg("Submitted! We’ll review it and email you a payment link if approved.");
-    setCourseName("");
-    setContactEmail("");
-    setAddress("");
-    setCity("");
-    setState("FL");
-    setPhone("");
-    setWebsiteUrl("");
-    setTeeTimeUrl("");
-    setImageUrl("");
+    // Send them to a clean confirmation page
+    router.push("/submit/received");
   }
 
   return (
@@ -169,7 +166,7 @@ export default function SubmitCoursePage() {
                 All fields are required. If approved, we’ll email you a subscription payment link.
               </div>
               <div style={{ marginTop: 6, color: ui.muted, fontSize: 12 }}>
-                Your email is used only for review + billing and is never shown publicly.
+                Contact email stays private — used only for approval updates + billing.
               </div>
             </div>
 
@@ -197,11 +194,21 @@ export default function SubmitCoursePage() {
 
           <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
             <Field label="Course Name *">
-              <input value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="TPC Sawgrass" style={inputStyle()} />
+              <input
+                value={courseName}
+                onChange={(e) => setCourseName(e.target.value)}
+                placeholder="TPC Sawgrass"
+                style={inputStyle()}
+              />
             </Field>
 
-            <Field label="Contact Email * (private)">
-              <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="you@example.com" style={inputStyle()} />
+            <Field label="Contact Email * (private — used for payment + updates)">
+              <input
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={inputStyle()}
+              />
             </Field>
 
             <div style={{ display: "grid", gap: 12, gridTemplateColumns: "1fr 1fr" }}>
@@ -214,7 +221,12 @@ export default function SubmitCoursePage() {
             </div>
 
             <Field label="Address *">
-              <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="110 Championship Way" style={inputStyle()} />
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="110 Championship Way"
+                style={inputStyle()}
+              />
             </Field>
 
             <Field label="Phone *">
@@ -226,7 +238,12 @@ export default function SubmitCoursePage() {
             </Field>
 
             <Field label="Tee Time Booking URL *">
-              <input value={teeTimeUrl} onChange={(e) => setTeeTimeUrl(e.target.value)} placeholder="https://... (actual booking page)" style={inputStyle()} />
+              <input
+                value={teeTimeUrl}
+                onChange={(e) => setTeeTimeUrl(e.target.value)}
+                placeholder="https://... (actual booking page)"
+                style={inputStyle()}
+              />
             </Field>
 
             <Field label="Image URL *">
@@ -234,14 +251,16 @@ export default function SubmitCoursePage() {
             </Field>
 
             {err ? (
-              <div style={{ padding: 12, borderRadius: 14, border: `1px solid rgba(239,68,68,0.35)`, background: "rgba(239,68,68,0.10)", color: ui.text }}>
+              <div
+                style={{
+                  padding: 12,
+                  borderRadius: 14,
+                  border: `1px solid rgba(239,68,68,0.35)`,
+                  background: "rgba(239,68,68,0.10)",
+                  color: ui.text,
+                }}
+              >
                 {err}
-              </div>
-            ) : null}
-
-            {msg ? (
-              <div style={{ padding: 12, borderRadius: 14, border: `1px solid rgba(34,197,94,0.35)`, background: "rgba(34,197,94,0.10)", color: ui.text }}>
-                {msg}
               </div>
             ) : null}
 
