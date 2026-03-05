@@ -1,43 +1,43 @@
-// src/app/api/stripe/create-checkout-session/route.ts
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-function requireEnv(name: string) {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing required env var: ${name}`);
-  return v;
-}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2026-02-25.clover",
+});
 
 export async function POST(req: Request) {
   try {
-    const { email, submissionId } = (await req.json()) as {
-      email?: string;
-      submissionId?: string;
-    };
+    const body = await req.json();
+    const submissionId = body?.submissionId as string | undefined;
 
-    if (!email) return NextResponse.json({ error: "Missing email" }, { status: 400 });
+    if (!submissionId) {
+      return NextResponse.json({ error: "Missing submissionId" }, { status: 400 });
+    }
 
-    const stripe = new Stripe(requireEnv("STRIPE_SECRET_KEY"));
-    const priceId = requireEnv("STRIPE_PRICE_ID");
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://teetimeus.com";
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      "http://localhost:3000";
+
+    // success/cancel pages we will create below
+    const successUrl = `${siteUrl}/pay/success?sid={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${siteUrl}/pay/cancel?submissionId=${encodeURIComponent(submissionId)}`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer_email: email,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${siteUrl}/submit?paid=1`,
-      cancel_url: `${siteUrl}/submit?paid=0`,
-      metadata: submissionId ? { submission_id: submissionId } : undefined,
+      line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+
+      // We use metadata to connect Stripe -> your DB submission row
+      metadata: {
+        submissionId,
+      },
     });
 
     return NextResponse.json({ url: session.url });
   } catch (e: any) {
-    return NextResponse.json(
-      { error: e?.message || "Unknown error" },
-      { status: 500 }
-    );
+    console.error("create-checkout-session error:", e);
+    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
   }
 }
