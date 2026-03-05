@@ -22,10 +22,7 @@ function normalizeCity(city: string | null) {
 }
 
 function courseMatches(c: Course, q: string, city: string) {
-  const cityOk =
-    city === "ALL"
-      ? true
-      : normalizeCity(c.city).toLowerCase() === city.toLowerCase();
+  const cityOk = city === "ALL" ? true : normalizeCity(c.city).toLowerCase() === city.toLowerCase();
   if (!cityOk) return false;
 
   const query = q.trim().toLowerCase();
@@ -70,25 +67,13 @@ function Chip({ children }: { children: React.ReactNode }) {
 
 function AdminIcon() {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      style={{ display: "block" }}
-    >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
       <path
         d="M12 12a4.25 4.25 0 1 0-4.25-4.25A4.25 4.25 0 0 0 12 12Z"
         stroke="currentColor"
         strokeWidth="1.8"
       />
-      <path
-        d="M4.5 20a7.5 7.5 0 0 1 15 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -104,20 +89,16 @@ function CourseCard({ c }: { c: Course }) {
         borderRadius: 18,
         padding: 16,
         boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
-        transition:
-          "transform 140ms ease, border-color 140ms ease, background 140ms ease",
+        transition: "transform 140ms ease, border-color 140ms ease, background 140ms ease",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
-        (e.currentTarget as HTMLDivElement).style.background =
-          "rgba(255,255,255,0.06)";
-        (e.currentTarget as HTMLDivElement).style.borderColor =
-          "rgba(255,255,255,0.16)";
+        (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.06)";
+        (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(255,255,255,0.16)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(0px)";
-        (e.currentTarget as HTMLDivElement).style.background =
-          "rgba(255,255,255,0.04)";
+        (e.currentTarget as HTMLDivElement).style.background = "rgba(255,255,255,0.04)";
         (e.currentTarget as HTMLDivElement).style.borderColor = ui.border;
       }}
     >
@@ -138,16 +119,9 @@ function CourseCard({ c }: { c: Course }) {
             <img
               src={c.image_url as string}
               alt={c.name}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
               onError={(e) => {
-                // Keep the box, swap to a known placeholder if the URL fails
-                (e.currentTarget as HTMLImageElement).src =
-                  DEFAULT_COURSE_IMAGE_URL;
+                (e.currentTarget as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
               }}
             />
           ) : (
@@ -158,8 +132,7 @@ function CourseCard({ c }: { c: Course }) {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background:
-                  "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(255,255,255,0.06))",
+                background: "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(255,255,255,0.06))",
                 color: ui.muted,
                 fontSize: 12,
               }}
@@ -170,50 +143,20 @@ function CourseCard({ c }: { c: Course }) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ minWidth: 260 }}>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  color: ui.text,
-                  lineHeight: 1.15,
-                }}
-              >
-                {c.name}
-              </div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: ui.text, lineHeight: 1.15 }}>{c.name}</div>
               <div style={{ fontSize: 13, color: ui.muted, marginTop: 6 }}>
                 {[c.address, c.city, c.state].filter(Boolean).join(", ")}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  marginTop: 10,
-                }}
-              >
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                 {c.city ? <Chip>{c.city}</Chip> : null}
                 {c.phone ? <Chip>{c.phone}</Chip> : null}
               </div>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {c.website_url && (
                 <a
                   href={c.website_url}
@@ -254,9 +197,7 @@ function CourseCard({ c }: { c: Course }) {
                   Book Tee Time
                 </a>
               ) : (
-                <span style={{ fontSize: 12, color: ui.subtle }}>
-                  No booking link yet
-                </span>
+                <span style={{ fontSize: 12, color: ui.subtle }}>No booking link yet</span>
               )}
             </div>
           </div>
@@ -317,9 +258,7 @@ export default function CoursesPage() {
   }, [courses]);
 
   const cities = useMemo(() => {
-    const unique = Array.from(cityCounts.keys()).sort((a, b) =>
-      a.localeCompare(b)
-    );
+    const unique = Array.from(cityCounts.keys()).sort((a, b) => a.localeCompare(b));
     return ["ALL", ...unique];
   }, [cityCounts]);
 
@@ -334,9 +273,7 @@ export default function CoursesPage() {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(c);
     }
-    const entries = Array.from(map.entries()).sort((a, b) =>
-      a[0].localeCompare(b[0])
-    );
+    const entries = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     for (const [, list] of entries) list.sort((a, b) => a.name.localeCompare(b.name));
     return entries;
   }, [filtered]);
@@ -363,12 +300,8 @@ export default function CoursesPage() {
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center" }}>
             <div>
-              <div style={{ fontSize: 34, fontWeight: 950, letterSpacing: "-0.02em" }}>
-                Florida Tee Times
-              </div>
-              <div style={{ marginTop: 6, color: ui.muted, fontSize: 15 }}>
-                Golf is hard. Booking it shouldn’t be.
-              </div>
+              <div style={{ fontSize: 34, fontWeight: 950, letterSpacing: "-0.02em" }}>Florida Tee Times</div>
+              <div style={{ marginTop: 6, color: ui.muted, fontSize: 15 }}>Golf is hard. Booking it shouldn’t be.</div>
             </div>
 
             {/* Admin icon pill */}
@@ -441,9 +374,7 @@ export default function CoursesPage() {
 
             <select
               value={view}
-              onChange={(e) =>
-                setView(e.target.value as "list" | "grouped")
-              }
+              onChange={(e) => setView(e.target.value as "list" | "grouped")}
               style={{
                 padding: "12px 14px",
                 borderRadius: 14,
@@ -478,8 +409,8 @@ export default function CoursesPage() {
           </div>
 
           <div style={{ marginTop: 12, fontSize: 13, color: ui.muted }}>
-            Showing <b style={{ color: ui.text }}>{filtered.length}</b> of{" "}
-            <b style={{ color: ui.text }}>{courses.length}</b> courses
+            Showing <b style={{ color: ui.text }}>{filtered.length}</b> of <b style={{ color: ui.text }}>{courses.length}</b>{" "}
+            courses
           </div>
         </div>
 
@@ -487,9 +418,7 @@ export default function CoursesPage() {
           {loading ? (
             <div style={{ padding: 16, color: ui.muted }}>Loading courses…</div>
           ) : filtered.length === 0 ? (
-            <div style={{ padding: 16, color: ui.muted }}>
-              No courses found. Try clearing filters.
-            </div>
+            <div style={{ padding: 16, color: ui.muted }}>No courses found. Try clearing filters.</div>
           ) : view === "list" ? (
             <div style={{ display: "grid", gap: 12 }}>
               {filtered.map((c) => (
@@ -509,12 +438,8 @@ export default function CoursesPage() {
                       padding: "0 4px",
                     }}
                   >
-                    <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: "-0.01em" }}>
-                      {cityName}
-                    </div>
-                    <div style={{ fontSize: 12, color: ui.muted }}>
-                      {list.length} course(s)
-                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: "-0.01em" }}>{cityName}</div>
+                    <div style={{ fontSize: 12, color: ui.muted }}>{list.length} course(s)</div>
                   </div>
 
                   <div style={{ display: "grid", gap: 12 }}>
@@ -528,7 +453,7 @@ export default function CoursesPage() {
           )}
         </div>
 
-        {/* Step 1 CTA: Add your course */}
+        {/* CTA A: Course owners */}
         <div
           style={{
             marginTop: 28,
@@ -540,21 +465,9 @@ export default function CoursesPage() {
             boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
           }}
         >
-          <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: "-0.01em" }}>
-            Own or manage a public golf course?
-          </div>
-          <div
-            style={{
-              marginTop: 8,
-              color: ui.muted,
-              fontSize: 14,
-              maxWidth: 560,
-              marginLeft: "auto",
-              marginRight: "auto",
-            }}
-          >
-            Add your course to Florida Tee Times and make booking simple for golfers
-            across the state.
+          <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: "-0.01em" }}>Own or manage a public golf course?</div>
+          <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+            Add your course to Florida Tee Times and make booking simple for golfers across the state.
           </div>
 
           <div style={{ marginTop: 14 }}>
@@ -578,14 +491,49 @@ export default function CoursesPage() {
             </Link>
           </div>
 
-          <div style={{ marginTop: 10, fontSize: 12, color: ui.muted }}>
-            All submissions are reviewed before publishing.
+          <div style={{ marginTop: 10, fontSize: 12, color: ui.muted }}>All submissions are reviewed before publishing.</div>
+        </div>
+
+        {/* CTA B: Golfers requesting courses */}
+        <div
+          style={{
+            marginTop: 14,
+            border: `1px solid ${ui.border}`,
+            background: ui.surface,
+            borderRadius: 22,
+            padding: 22,
+            textAlign: "center",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
+          }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: "-0.01em" }}>Don’t see your local course?</div>
+          <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+            Request it and we’ll prioritize reaching out. (Optional email is private and only used for notification.)
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <Link
+              href="/request"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "12px 18px",
+                borderRadius: 14,
+                border: `1px solid ${ui.border}`,
+                background: ui.surface2,
+                color: ui.text,
+                textDecoration: "none",
+                fontWeight: 950,
+                boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
+              }}
+            >
+              Request a Course
+            </Link>
           </div>
         </div>
 
-        <div style={{ marginTop: 18, color: ui.muted, fontSize: 12 }}>
-          Built for speed: find a course → click book → go play.
-        </div>
+        <div style={{ marginTop: 18, color: ui.muted, fontSize: 12 }}>Built for speed: find a course → click book → go play.</div>
       </div>
     </div>
   );
