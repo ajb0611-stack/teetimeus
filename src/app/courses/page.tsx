@@ -508,7 +508,7 @@ export default function CoursesPage() {
         >
           <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: "-0.01em" }}>Don’t see your local course?</div>
           <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-            Request it and we’ll prioritize reaching out. (Optional email is private and only used for notification.)
+            Request it and we’ll prioritize reaching out. 
           </div>
 
           <div style={{ marginTop: 14 }}>
