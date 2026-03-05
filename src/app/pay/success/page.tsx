@@ -1,29 +1,118 @@
-"use client";
-
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
-export default function PaySuccessPage() {
-  const sp = useSearchParams();
-  const sid = sp.get("sid");
+export const dynamic = "force-dynamic";
+
+const ui = {
+  bg: "#0b1220",
+  surface: "rgba(255,255,255,0.06)",
+  border: "rgba(255,255,255,0.10)",
+  text: "rgba(255,255,255,0.92)",
+  muted: "rgba(255,255,255,0.68)",
+  accent: "#22c55e",
+  accent2: "#16a34a",
+  black: "#0b1220",
+};
+
+type PageProps = {
+  searchParams?: {
+    session_id?: string;
+    submission_id?: string;
+  };
+};
+
+export default function PaySuccessPage({ searchParams }: PageProps) {
+  const sessionId = searchParams?.session_id;
+  const submissionId = searchParams?.submission_id;
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: 48, fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 32, marginBottom: 10 }}>Payment received</h1>
-      <p style={{ fontSize: 16, lineHeight: 1.5 }}>
-        Thank you. Your payment was successful and your course will now be published.
-      </p>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: `radial-gradient(1200px 700px at 20% -10%, rgba(34,197,94,0.22), transparent 60%),
+                     radial-gradient(900px 600px at 90% 0%, rgba(59,130,246,0.18), transparent 55%),
+                     ${ui.bg}`,
+        color: ui.text,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "56px 16px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 760,
+          width: "100%",
+          border: `1px solid ${ui.border}`,
+          background: ui.surface,
+          borderRadius: 22,
+          padding: 22,
+          boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 30, fontWeight: 950, letterSpacing: "-0.02em" }}>
+          Payment received
+        </div>
 
-      {sid ? (
-        <p style={{ marginTop: 14, fontSize: 12, opacity: 0.75 }}>
-          Confirmation: <code>{sid}</code>
-        </p>
-      ) : null}
+        <div style={{ marginTop: 10, color: ui.muted, fontSize: 14, lineHeight: 1.5 }}>
+          Thank you — your payment has been received.
+          <br />
+          Your course will now be published (or is being published) and will appear on the Courses page shortly.
+        </div>
 
-      <div style={{ marginTop: 22 }}>
-        <Link href="/courses" style={{ textDecoration: "underline" }}>
-          Go to Courses
-        </Link>
+        <div
+          style={{
+            marginTop: 14,
+            padding: 12,
+            borderRadius: 14,
+            border: `1px solid ${ui.border}`,
+            background: "rgba(0,0,0,0.18)",
+            color: ui.muted,
+            fontSize: 12,
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontWeight: 800, color: ui.text, marginBottom: 6 }}>Receipt Details</div>
+          <div>session_id: {sessionId ?? "—"}</div>
+          <div>submission_id: {submissionId ?? "—"}</div>
+        </div>
+
+        <div style={{ marginTop: 18, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link
+            href="/"
+            style={{
+              padding: "12px 16px",
+              borderRadius: 14,
+              border: "1px solid rgba(34,197,94,0.45)",
+              background: `linear-gradient(180deg, ${ui.accent}, ${ui.accent2})`,
+              color: ui.black,
+              textDecoration: "none",
+              fontWeight: 950,
+              boxShadow: "0 10px 25px rgba(34,197,94,0.18)",
+            }}
+          >
+            Back to Courses
+          </Link>
+
+          <Link
+            href="/submit"
+            style={{
+              padding: "12px 16px",
+              borderRadius: 14,
+              border: `1px solid ${ui.border}`,
+              background: "rgba(255,255,255,0.06)",
+              color: ui.text,
+              textDecoration: "none",
+              fontWeight: 900,
+            }}
+          >
+            Submit another course
+          </Link>
+        </div>
+
+        <div style={{ marginTop: 12, color: ui.muted, fontSize: 12 }}>
+          If you don’t see your course within a few minutes, contact us at alex.teetimeus@gmail.com.
+        </div>
       </div>
     </div>
   );
