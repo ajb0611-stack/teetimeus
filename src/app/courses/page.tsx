@@ -262,9 +262,7 @@ export default function CoursesPage() {
     return ["ALL", ...unique];
   }, [cityCounts]);
 
-  const filtered = useMemo(() => {
-    return courses.filter((c) => courseMatches(c, q, city));
-  }, [courses, q, city]);
+  const filtered = useMemo(() => courses.filter((c) => courseMatches(c, q, city)), [courses, q, city]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, Course[]>();
@@ -304,27 +302,49 @@ export default function CoursesPage() {
               <div style={{ marginTop: 6, color: ui.muted, fontSize: 15 }}>Golf is hard. Booking it shouldn’t be.</div>
             </div>
 
-            {/* Admin icon pill */}
-            <Link
-              href="/admin/login"
-              aria-label="Admin"
-              title="Admin"
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: 14,
-                border: `1px solid ${ui.border}`,
-                background: ui.surface2,
-                color: ui.text,
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
-              }}
-            >
-              <AdminIcon />
-            </Link>
+            {/* Top-right actions */}
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <Link
+                href="/request"
+                style={{
+                  height: 42,
+                  padding: "0 14px",
+                  borderRadius: 14,
+                  border: `1px solid ${ui.border}`,
+                  background: ui.surface2,
+                  color: ui.text,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 950,
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
+                }}
+              >
+                Request a Course
+              </Link>
+
+              <Link
+                href="/admin/login"
+                aria-label="Admin"
+                title="Admin"
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  border: `1px solid ${ui.border}`,
+                  background: ui.surface2,
+                  color: ui.text,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
+                }}
+              >
+                <AdminIcon />
+              </Link>
+            </div>
           </div>
 
           <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -453,7 +473,7 @@ export default function CoursesPage() {
           )}
         </div>
 
-        {/* CTA A: Course owners */}
+        {/* Keep the Course Owner CTA (only) */}
         <div
           style={{
             marginTop: 28,
@@ -492,45 +512,6 @@ export default function CoursesPage() {
           </div>
 
           <div style={{ marginTop: 10, fontSize: 12, color: ui.muted }}>All submissions are reviewed before publishing.</div>
-        </div>
-
-        {/* CTA B: Golfers requesting courses */}
-        <div
-          style={{
-            marginTop: 14,
-            border: `1px solid ${ui.border}`,
-            background: ui.surface,
-            borderRadius: 22,
-            padding: 22,
-            textAlign: "center",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
-          }}
-        >
-          <div style={{ fontSize: 20, fontWeight: 950, letterSpacing: "-0.01em" }}>Don’t see your local course?</div>
-          <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-            Request it and we’ll prioritize reaching out. 
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <Link
-              href="/request"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: "12px 18px",
-                borderRadius: 14,
-                border: `1px solid ${ui.border}`,
-                background: ui.surface2,
-                color: ui.text,
-                textDecoration: "none",
-                fontWeight: 950,
-                boxShadow: "0 10px 25px rgba(0,0,0,0.22)",
-              }}
-            >
-              Request a Course
-            </Link>
-          </div>
         </div>
 
         <div style={{ marginTop: 18, color: ui.muted, fontSize: 12 }}>Built for speed: find a course → click book → go play.</div>
