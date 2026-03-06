@@ -30,6 +30,7 @@ const ui = {
 };
 
 const DEFAULT_COURSE_IMAGE_URL = "https://placehold.co/300x300/png";
+const SITE_URL = "https://www.teetimeus.com";
 
 function getSupabaseServer() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,11 +72,7 @@ async function getAllActiveCities() {
   if (error || !data) return [];
 
   const unique = Array.from(
-    new Set(
-      data
-        .map((row) => (row.city ?? "").trim())
-        .filter(Boolean)
-    )
+    new Set(data.map((row) => (row.city ?? "").trim()).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
 
   return unique;
@@ -111,17 +108,30 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const cityTitle = slugToTitle(params.slug);
+  const canonicalUrl = `${SITE_URL}/cities/${params.slug}`;
+  const description = `Explore public golf courses in ${cityTitle}, Florida and quickly access tee time booking links in one place on TeeTimeUs.`;
 
   return {
     title: `${cityTitle} Golf Courses | TeeTimeUs`,
-    description: `Explore public golf courses in ${cityTitle}, Florida and quickly access tee time booking links in one place on TeeTimeUs.`,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${cityTitle} Golf Courses | TeeTimeUs`,
+      description,
+      url: canonicalUrl,
+      siteName: "TeeTimeUs",
+      type: "website",
+    },
   };
 }
 
 function CourseCard({ c }: { c: Course }) {
-  const imageSrc = c.image_url && c.image_url.trim().length
-    ? c.image_url
-    : DEFAULT_COURSE_IMAGE_URL;
+  const imageSrc =
+    c.image_url && c.image_url.trim().length
+      ? c.image_url
+      : DEFAULT_COURSE_IMAGE_URL;
 
   return (
     <div
@@ -181,7 +191,14 @@ function CourseCard({ c }: { c: Course }) {
                 {[c.address, c.city, c.state].filter(Boolean).join(", ")}
               </div>
 
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 10,
+                }}
+              >
                 {c.city ? (
                   <span
                     style={{
@@ -262,7 +279,9 @@ function CourseCard({ c }: { c: Course }) {
                   Book Tee Time
                 </a>
               ) : (
-                <span style={{ fontSize: 12, color: ui.subtle }}>No booking link yet</span>
+                <span style={{ fontSize: 12, color: ui.subtle }}>
+                  No booking link yet
+                </span>
               )}
             </div>
           </div>
@@ -306,7 +325,9 @@ export default async function CityPage({
               We couldn’t find an active city page for this location yet.
             </div>
 
-            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div
+              style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" }}
+            >
               <Link
                 href="/courses"
                 style={{
@@ -351,6 +372,64 @@ export default async function CityPage({
   }
 
   const courses = await getCoursesByCity(matchedCity);
+  const citySlug = cityToSlug(matchedCity);
+  const pageUrl = `${SITE_URL}/cities/${citySlug}`;
+
+  const itemListElements = courses.map((course, index) => {
+    const courseUrl =
+      course.tee_time_url || course.website_url || pageUrl;
+
+    return {
+      "@type": "ListItem",
+      position: index + 1,
+      url: courseUrl,
+      item: {
+        "@type": "GolfCourse",
+        name: course.name,
+        telephone: course.phone || undefined,
+        image:
+          course.image_url && course.image_url.trim().length
+            ? course.image_url
+            : DEFAULT_COURSE_IMAGE_URL,
+        url: courseUrl,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: course.address || undefined,
+          addressLocality: course.city || undefined,
+          addressRegion: course.state || "FL",
+          addressCountry: "US",
+        },
+      },
+    };
+  });
+
+  const cityPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${matchedCity} Golf Courses`,
+    url: pageUrl,
+    description: `Explore public golf courses in ${matchedCity}, Florida and quickly access tee time booking links in one place on TeeTimeUs.`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "TeeTimeUs",
+      url: SITE_URL,
+    },
+    about: {
+      "@type": "Place",
+      name: matchedCity,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: matchedCity,
+        addressRegion: "FL",
+        addressCountry: "US",
+      },
+    },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: courses.length,
+      itemListElement: itemListElements,
+    },
+  };
 
   return (
     <div
@@ -362,6 +441,13 @@ export default async function CityPage({
         color: ui.text,
       }}
     >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(cityPageSchema),
+        }}
+      />
+
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "56px 16px 70px" }}>
         <div
           style={{
@@ -372,14 +458,31 @@ export default async function CityPage({
             boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
             <div>
               <div style={{ fontSize: 34, fontWeight: 950, letterSpacing: "-0.02em" }}>
                 {matchedCity} Golf Courses
               </div>
-              <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 760, lineHeight: 1.5 }}>
-                Explore public golf courses in {matchedCity}, Florida and quickly access tee time booking links in one
-                place on TeeTimeUs. Browse active listings below and click through to book directly with each course.
+              <div
+                style={{
+                  marginTop: 8,
+                  color: ui.muted,
+                  fontSize: 14,
+                  maxWidth: 760,
+                  lineHeight: 1.5,
+                }}
+              >
+                Explore public golf courses in {matchedCity}, Florida and quickly
+                access tee time booking links in one place on TeeTimeUs. Browse
+                active listings below and click through to book directly with each
+                course.
               </div>
             </div>
 
@@ -423,7 +526,8 @@ export default async function CityPage({
           </div>
 
           <div style={{ marginTop: 14, fontSize: 13, color: ui.muted }}>
-            Showing <b style={{ color: ui.text }}>{courses.length}</b> active course(s) in <b style={{ color: ui.text }}>{matchedCity}</b>
+            Showing <b style={{ color: ui.text }}>{courses.length}</b> active
+            course(s) in <b style={{ color: ui.text }}>{matchedCity}</b>
           </div>
         </div>
 
@@ -442,7 +546,9 @@ export default async function CityPage({
                 We don’t have any active courses listed in {matchedCity} yet.
               </div>
 
-              <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <div
+                style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}
+              >
                 <Link
                   href="/request"
                   style={{
@@ -504,8 +610,18 @@ export default async function CityPage({
           <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: "-0.01em" }}>
             Own or manage a golf course in {matchedCity}?
           </div>
-          <div style={{ marginTop: 8, color: ui.muted, fontSize: 14, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
-            Add your course to TeeTimeUs and make booking simple for golfers searching in {matchedCity}.
+          <div
+            style={{
+              marginTop: 8,
+              color: ui.muted,
+              fontSize: 14,
+              maxWidth: 560,
+              marginLeft: "auto",
+              marginRight: "auto",
+            }}
+          >
+            Add your course to TeeTimeUs and make booking simple for golfers
+            searching in {matchedCity}.
           </div>
 
           <div style={{ marginTop: 14 }}>
