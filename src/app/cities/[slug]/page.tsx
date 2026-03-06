@@ -119,7 +119,9 @@ export async function generateMetadata({
 }
 
 function CourseCard({ c }: { c: Course }) {
-  const hasImage = Boolean(c.image_url && c.image_url.trim().length);
+  const imageSrc = c.image_url && c.image_url.trim().length
+    ? c.image_url
+    : DEFAULT_COURSE_IMAGE_URL;
 
   return (
     <div
@@ -143,37 +145,16 @@ function CourseCard({ c }: { c: Course }) {
             flex: "0 0 auto",
           }}
         >
-          {hasImage ? (
-            <img
-              src={c.image_url as string}
-              alt={c.name}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = DEFAULT_COURSE_IMAGE_URL;
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background:
-                  "linear-gradient(135deg, rgba(34,197,94,0.20), rgba(255,255,255,0.06))",
-                color: ui.muted,
-                fontSize: 12,
-              }}
-            >
-              No photo
-            </div>
-          )}
+          <img
+            src={imageSrc}
+            alt={c.name}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
