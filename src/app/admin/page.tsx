@@ -1,125 +1,166 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
-function DashboardCard({
+const ui = {
+  bg: "#0b1220",
+  surface: "rgba(255,255,255,0.06)",
+  surface2: "rgba(255,255,255,0.08)",
+  border: "rgba(255,255,255,0.10)",
+  text: "rgba(255,255,255,0.92)",
+  muted: "rgba(255,255,255,0.68)",
+  accent: "#22c55e",
+  accent2: "#16a34a",
+  black: "#0b1220",
+};
+
+function CardLink({
+  href,
   title,
   desc,
-  href,
-  primary,
+  accent = false,
 }: {
+  href: string;
   title: string;
   desc: string;
-  href: string;
-  primary?: boolean;
+  accent?: boolean;
 }) {
   return (
-    <Link href={href} className={primary ? "btnPrimary" : "btn"} style={{ borderRadius: 18, padding: 16, height: "100%" }}>
-      <div style={{ display: "grid", gap: 6 }}>
-        <div style={{ fontSize: 16, fontWeight: 950 }}>{title}</div>
-        <div style={{ fontSize: 13, color: primary ? "rgba(11,18,32,0.78)" : "var(--muted)" }}>{desc}</div>
+    <Link
+      href={href}
+      style={{
+        display: "block",
+        textDecoration: "none",
+        borderRadius: 18,
+        border: `1px solid ${accent ? "rgba(34,197,94,0.35)" : ui.border}`,
+        background: accent ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.04)",
+        padding: 18,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
+        transition: "transform 140ms ease, border-color 140ms ease, background 140ms ease",
+        color: ui.text,
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)";
+        (e.currentTarget as HTMLAnchorElement).style.background = accent
+          ? "rgba(34,197,94,0.10)"
+          : "rgba(255,255,255,0.06)";
+        (e.currentTarget as HTMLAnchorElement).style.borderColor = accent
+          ? "rgba(34,197,94,0.45)"
+          : "rgba(255,255,255,0.16)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0px)";
+        (e.currentTarget as HTMLAnchorElement).style.background = accent
+          ? "rgba(34,197,94,0.08)"
+          : "rgba(255,255,255,0.04)";
+        (e.currentTarget as HTMLAnchorElement).style.borderColor = accent
+          ? "rgba(34,197,94,0.35)"
+          : ui.border;
+      }}
+    >
+      <div style={{ fontSize: 18, fontWeight: 950, letterSpacing: "-0.01em" }}>{title}</div>
+      <div style={{ marginTop: 8, fontSize: 13, color: ui.muted, lineHeight: 1.35 }}>{desc}</div>
+
+      <div
+        style={{
+          marginTop: 14,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "10px 14px",
+          borderRadius: 14,
+          border: accent ? "1px solid rgba(34,197,94,0.45)" : `1px solid ${ui.border}`,
+          background: accent ? `linear-gradient(180deg, ${ui.accent}, ${ui.accent2})` : ui.surface2,
+          color: accent ? ui.black : ui.text,
+          fontWeight: 950,
+          fontSize: 13,
+          boxShadow: accent ? "0 10px 25px rgba(34,197,94,0.18)" : "none",
+          width: "fit-content",
+        }}
+      >
+        Open
       </div>
     </Link>
   );
 }
 
-export default function AdminDashboard() {
-  const supabase = useMemo(() => supabaseBrowser(), []);
-  const [loading, setLoading] = useState(true);
-  const [authedEmail, setAuthedEmail] = useState("");
-
-  async function requireAdmin() {
-    const { data: userRes } = await supabase.auth.getUser();
-    const user = userRes.user;
-
-    if (!user) {
-      window.location.href = "/admin/login";
-      return false;
-    }
-
-    setAuthedEmail(user.email ?? "");
-
-    const { data: admins, error } = await supabase
-      .from("admins")
-      .select("user_id")
-      .eq("user_id", user.id)
-      .limit(1);
-
-    if (error || !admins || admins.length === 0) {
-      await supabase.auth.signOut();
-      window.location.href = "/admin/login";
-      return false;
-    }
-
-    return true;
-  }
-
-  useEffect(() => {
-    let alive = true;
-
-    (async () => {
-      const ok = await requireAdmin();
-      if (!alive) return;
-      setLoading(!ok);
-      if (ok) setLoading(false);
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  async function logout() {
-    await supabase.auth.signOut();
-    window.location.href = "/courses";
-  }
-
+export default function AdminHome() {
   return (
-    <div className="container">
-      <div className="shell">
-        <div className="spread">
-          <div>
-            <h1 className="h1" style={{ fontSize: 28 }}>Admin Dashboard</h1>
-            <p className="p">Keep courses clean and booking links accurate.</p>
-          </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: `radial-gradient(1200px 700px at 20% -10%, rgba(34,197,94,0.18), transparent 60%),
+                     radial-gradient(900px 600px at 90% 0%, rgba(59,130,246,0.12), transparent 55%),
+                     ${ui.bg}`,
+        color: ui.text,
+      }}
+    >
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "56px 16px 70px" }}>
+        <div
+          style={{
+            border: `1px solid ${ui.border}`,
+            background: ui.surface,
+            borderRadius: 22,
+            padding: 20,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.28)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: 30, fontWeight: 950, letterSpacing: "-0.02em" }}>Admin Dashboard</div>
+              <div style={{ marginTop: 6, color: ui.muted, fontSize: 14 }}>
+                Manage submissions, requests, and your published course directory.
+              </div>
+            </div>
 
-          <div className="row">
-            <Link className="btn" href="/courses">
-              Public Site
+            <Link
+              href="/courses"
+              style={{
+                padding: "10px 14px",
+                borderRadius: 14,
+                border: `1px solid ${ui.border}`,
+                background: ui.surface2,
+                color: ui.text,
+                textDecoration: "none",
+                fontWeight: 900,
+                fontSize: 13,
+              }}
+            >
+              Back to Courses
             </Link>
-            <button className="btn" onClick={logout}>
-              Log out
-            </button>
           </div>
         </div>
 
-        <div style={{ marginTop: 10, color: "var(--muted)", fontSize: 12 }}>
-          {loading ? "Checking access…" : authedEmail ? `Signed in as ${authedEmail}` : ""}
-        </div>
+        <div
+          style={{
+            marginTop: 16,
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: 12,
+          }}
+        >
+          <CardLink
+            href="/admin/submissions"
+            title="Course Submissions"
+            desc="Review course-owner submissions, approve, and send payment links."
+            accent
+          />
 
-        <div style={{ marginTop: 18, display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-          <DashboardCard
-            title="Courses Import"
-            desc="Upload a CSV and update courses safely."
+          <CardLink
+            href="/admin/requests"
+            title="Course Requests"
+            desc="Private demand intel from golfers. Use this list to prioritize outreach."
+          />
+
+          <CardLink
             href="/admin/courses"
-            primary
-          />
-          <DashboardCard
-            title="Test Public Page"
-            desc="Open /courses and verify buttons + links."
-            href="/courses"
-          />
-          <DashboardCard
-            title="Admin Login"
-            desc="Return to login (useful for testing)."
-            href="/admin/login"
+            title="Courses Import"
+            desc="Import CSVs and manage your existing course directory."
           />
         </div>
 
-        <div style={{ marginTop: 16, color: "var(--muted)", fontSize: 13, lineHeight: 1.45 }}>
-          Tip: your edge is simplicity — always use the link that goes directly to the tee time booking page.
+        <div style={{ marginTop: 18, color: ui.muted, fontSize: 12 }}>
+          Tip: Requests are private and never appear on the public site.
         </div>
       </div>
     </div>
