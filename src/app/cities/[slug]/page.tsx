@@ -557,7 +557,7 @@ export default async function CityPage({
               maxWidth: 900,
             }}
           >
-            {matchedCity} offers golfers a convenient place to explore public golf
+            TeeTimeUs offers golfers a convenient place to explore public golf
             courses and compare tee time booking options in one location. Whether
             you are looking for a quick weekday round, a weekend tee time, or a
             new course to try, TeeTimeUs helps players discover golf opportunities
