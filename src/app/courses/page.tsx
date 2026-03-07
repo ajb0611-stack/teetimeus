@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
 type Course = {
@@ -19,6 +20,15 @@ type Course = {
 function normalizeCity(city: string | null) {
   const c = (city ?? "").trim();
   return c.length ? c : "Unknown";
+}
+
+function courseToSlug(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
 }
 
 function courseMatches(c: Course, q: string, city: string) {
@@ -45,7 +55,6 @@ const ui = {
   black: "#0b1220",
 };
 
-// Used when image_url is missing or fails to load
 const DEFAULT_COURSE_IMAGE_URL = "https://placehold.co/300x300/png";
 
 function Chip({ children }: { children: React.ReactNode }) {
@@ -79,10 +88,28 @@ function AdminIcon() {
 }
 
 function CourseCard({ c }: { c: Course }) {
+  const router = useRouter();
   const hasImage = Boolean(c.image_url && c.image_url.trim().length);
+  const courseHref = `/courses/${courseToSlug(c.name)}`;
+
+  function goToCourse() {
+    router.push(courseHref);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      goToCourse();
+    }
+  }
 
   return (
     <div
+      role="link"
+      tabIndex={0}
+      aria-label={`View course page for ${c.name}`}
+      onClick={goToCourse}
+      onKeyDown={handleKeyDown}
       style={{
         border: `1px solid ${ui.border}`,
         background: "rgba(255,255,255,0.04)",
@@ -90,6 +117,7 @@ function CourseCard({ c }: { c: Course }) {
         padding: 16,
         boxShadow: "0 10px 30px rgba(0,0,0,0.25)",
         transition: "transform 140ms ease, border-color 140ms ease, background 140ms ease",
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
@@ -103,7 +131,6 @@ function CourseCard({ c }: { c: Course }) {
       }}
     >
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        {/* Fixed-size image slot (always present) */}
         <div
           style={{
             width: 92,
@@ -146,6 +173,7 @@ function CourseCard({ c }: { c: Course }) {
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div style={{ minWidth: 260 }}>
               <div style={{ fontSize: 18, fontWeight: 900, color: ui.text, lineHeight: 1.15 }}>{c.name}</div>
+
               <div style={{ fontSize: 13, color: ui.muted, marginTop: 6 }}>
                 {[c.address, c.city, c.state].filter(Boolean).join(", ")}
               </div>
@@ -162,6 +190,7 @@ function CourseCard({ c }: { c: Course }) {
                   href={c.website_url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     padding: "10px 14px",
                     borderRadius: 14,
@@ -182,6 +211,7 @@ function CourseCard({ c }: { c: Course }) {
                   href={c.tee_time_url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   style={{
                     padding: "10px 16px",
                     borderRadius: 14,
@@ -302,7 +332,6 @@ export default function CoursesPage() {
               <div style={{ marginTop: 6, color: ui.muted, fontSize: 15 }}>Golf is hard. Booking it shouldn’t be.</div>
             </div>
 
-            {/* Top-right actions */}
             <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <Link
                 href="/request"
@@ -473,7 +502,6 @@ export default function CoursesPage() {
           )}
         </div>
 
-        {/* Keep the Course Owner CTA (only) */}
         <div
           style={{
             marginTop: 28,
