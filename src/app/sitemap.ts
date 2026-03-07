@@ -38,9 +38,7 @@ async function getAllActiveCities() {
 
   const uniqueCities = Array.from(
     new Set(
-      data
-        .map((row) => (row.city ?? "").trim())
-        .filter(Boolean)
+      data.map((row) => (row.city ?? "").trim()).filter(Boolean)
     )
   ).sort((a, b) => a.localeCompare(b));
 
@@ -86,5 +84,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...cityPages];
+  const teeTimePages: MetadataRoute.Sitemap = cities.map((city) => ({
+    url: `${SITE_URL}/tee-times/${cityToSlug(city)}`,
+    lastModified: now,
+    changeFrequency: "daily",
+    priority: 0.85,
+  }));
+
+  return [...staticPages, ...cityPages, ...teeTimePages];
 }
