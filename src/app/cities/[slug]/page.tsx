@@ -534,6 +534,53 @@ export default async function CityPage({
           </div>
         </div>
 
+        <div
+          style={{
+            marginTop: 18,
+            border: `1px solid ${ui.border}`,
+            background: ui.surface,
+            borderRadius: 22,
+            padding: 22,
+            boxShadow: "0 20px 50px rgba(0,0,0,0.18)",
+          }}
+        >
+          <div style={{ fontSize: 22, fontWeight: 950, letterSpacing: "-0.01em" }}>
+            Golf in {matchedCity}, Florida
+          </div>
+
+          <div
+            style={{
+              marginTop: 10,
+              color: ui.muted,
+              fontSize: 14,
+              lineHeight: 1.7,
+              maxWidth: 900,
+            }}
+          >
+            {matchedCity} offers golfers a convenient place to explore public golf
+            courses and compare tee time booking options in one location. Whether
+            you are looking for a quick weekday round, a weekend tee time, or a
+            new course to try, TeeTimeUs helps players discover golf opportunities
+            in {matchedCity} and nearby Florida markets.
+          </div>
+
+          <div
+            style={{
+              marginTop: 12,
+              color: ui.muted,
+              fontSize: 14,
+              lineHeight: 1.7,
+              maxWidth: 900,
+            }}
+          >
+            Our {matchedCity} golf page is designed to make it easier to browse
+            active course listings, view course details, and click directly to
+            official booking links. As TeeTimeUs continues expanding across
+            Florida, golfers can use these city pages to quickly find public golf
+            courses, discover nearby locations, and book rounds with less hassle.
+          </div>
+        </div>
+
         <div style={{ marginTop: 18 }}>
           {courses.length === 0 ? (
             <div
