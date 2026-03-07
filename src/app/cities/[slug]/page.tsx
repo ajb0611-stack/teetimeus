@@ -52,6 +52,15 @@ function cityToSlug(city: string) {
     .replace(/(^-|-$)+/g, "");
 }
 
+function courseToSlug(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
 function slugToTitle(slug: string) {
   return slug
     .split("-")
@@ -177,16 +186,19 @@ function CourseCard({ c }: { c: Course }) {
             }}
           >
             <div style={{ minWidth: 260 }}>
-              <div
+              <Link
+                href={`/courses/${courseToSlug(c.name)}`}
                 style={{
                   fontSize: 18,
                   fontWeight: 900,
                   color: ui.text,
                   lineHeight: 1.15,
+                  textDecoration: "none",
                 }}
               >
                 {c.name}
-              </div>
+              </Link>
+
               <div style={{ fontSize: 13, color: ui.muted, marginTop: 6 }}>
                 {[c.address, c.city, c.state].filter(Boolean).join(", ")}
               </div>
