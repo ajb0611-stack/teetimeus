@@ -375,9 +375,12 @@ export default async function CityPage({
   const citySlug = cityToSlug(matchedCity);
   const pageUrl = `${SITE_URL}/cities/${citySlug}`;
 
+  const nearbyCities = allCities
+    .filter((city) => city !== matchedCity)
+    .slice(0, 8);
+
   const itemListElements = courses.map((course, index) => {
-    const courseUrl =
-      course.tee_time_url || course.website_url || pageUrl;
+    const courseUrl = course.tee_time_url || course.website_url || pageUrl;
 
     return {
       "@type": "ListItem",
@@ -643,6 +646,53 @@ export default async function CityPage({
             >
               Add Your Course
             </Link>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 28,
+            border: `1px solid ${ui.border}`,
+            background: ui.surface,
+            borderRadius: 22,
+            padding: 22,
+          }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 900 }}>
+            Golf Courses Near {matchedCity}
+          </div>
+
+          <div style={{ marginTop: 10, color: ui.muted, fontSize: 14 }}>
+            Explore nearby cities with public golf courses and tee time booking
+            links.
+          </div>
+
+          <div
+            style={{
+              marginTop: 14,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+            }}
+          >
+            {nearbyCities.map((city) => (
+              <Link
+                key={city}
+                href={`/cities/${cityToSlug(city)}`}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: 999,
+                  border: `1px solid ${ui.border}`,
+                  background: ui.surface2,
+                  color: ui.text,
+                  textDecoration: "none",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                {city}
+              </Link>
+            ))}
           </div>
         </div>
 
