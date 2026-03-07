@@ -1,13 +1,4 @@
-import type { Metadata } from "next";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "TeeTimeUs",
-  description: "Find public golf courses and tee time booking links.",
-  verification: {
-    google: "pM17PXV8cpHTCr3Ophkj0vVMDTrjyYWEHZlW95inn4U",
-  },
-};
 
 export default function RootLayout({
   children,
@@ -16,6 +7,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="google-site-verification"
+          content="pM17PXV8cpHTCr3Ophkj0vVMDTrjyYWEHZlW95inn4U"
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
